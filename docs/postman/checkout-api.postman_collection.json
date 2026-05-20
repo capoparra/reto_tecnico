@@ -1,0 +1,132 @@
+{
+  "info": {
+    "name": "Product Checkout API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "customerId", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "transactionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Stock - Get product",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/products"
+      }
+    },
+    {
+      "name": "Config - Get fees",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/config/fees"
+      }
+    },
+    {
+      "name": "Customers - Create",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('customerId', json.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Maria Lopez\",\n  \"email\": \"maria@example.com\",\n  \"phone\": \"3001234567\"\n}"
+        },
+        "url": "{{baseUrl}}/customers"
+      }
+    },
+    {
+      "name": "Customers - Get by id",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/customers/{{customerId}}"
+      }
+    },
+    {
+      "name": "Transactions - Create PENDING",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "if (!pm.collectionVariables.get('productId')) {",
+              "  pm.sendRequest({ url: pm.collectionVariables.get('baseUrl') + '/products', method: 'GET' }, (err, res) => {",
+              "    const p = res.json();",
+              "    pm.collectionVariables.set('productId', p.id);",
+              "  });",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('transactionId', json.transaction.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"productId\": \"{{productId}}\",\n  \"delivery\": {\n    \"addressLine\": \"Carrera 7 # 45\",\n    \"city\": \"Bogota\",\n    \"region\": \"Cundinamarca\",\n    \"postalCode\": \"110111\",\n    \"country\": \"CO\"\n  }\n}"
+        },
+        "url": "{{baseUrl}}/transactions"
+      }
+    },
+    {
+      "name": "Transactions - Get by id",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/transactions/{{transactionId}}"
+      }
+    },
+    {
+      "name": "Transactions - Pay with Wompi (card)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"card\": {\n    \"number\": \"4242424242424242\",\n    \"cvc\": \"123\",\n    \"expMonth\": \"12\",\n    \"expYear\": \"29\",\n    \"cardHolder\": \"Test User\"\n  },\n  \"installments\": 1,\n  \"termsAccepted\": true\n}"
+        },
+        "url": "{{baseUrl}}/transactions/{{transactionId}}/pay"
+      }
+    },
+    {
+      "name": "Transactions - Complete payment APPROVED",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"APPROVED\",\n  \"wompiTransactionId\": \"sandbox-tx-001\",\n  \"paymentResultMessage\": \"Payment approved\"\n}"
+        },
+        "url": "{{baseUrl}}/transactions/{{transactionId}}/payment-result"
+      }
+    },
+    {
+      "name": "Deliveries - Get by transaction",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/transactions/{{transactionId}}/delivery"
+      }
+    }
+  ]
+}
